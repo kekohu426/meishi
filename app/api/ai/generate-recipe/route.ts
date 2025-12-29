@@ -50,10 +50,10 @@ export async function POST(request: NextRequest) {
         if (result.data.imageShots && result.data.imageShots.length > 0) {
           console.log(`准备生成 ${result.data.imageShots.length} 张配图...`);
           
-          // 并行生成所有图片
-          await Promise.all(result.data.imageShots.map(async (shot: any) => {
+          // 串行生成所有图片（避免并发限流）
+          for (const shot of result.data.imageShots) {
             try {
-              if (!shot.imagePrompt) return;
+              if (!shot.imagePrompt) continue;
 
               console.log(`正在生成图片 [${shot.key}]...`);
               
@@ -68,8 +68,8 @@ export async function POST(request: NextRequest) {
                 prompt: shot.imagePrompt,
                 width,
                 height,
-                timeoutMs: 40000, // 增加超时时间
-                retries: 1,
+                timeoutMs: 60000, // 增加超时时间到60秒
+                retries: 2,       // 增加重试次数
               });
 
               if (imageResult.success && imageResult.imageUrl) {
@@ -109,7 +109,10 @@ export async function POST(request: NextRequest) {
             } catch (err) {
               console.error(`图片 [${shot.key}] 生成出错:`, err);
             }
-          }));
+          }
+
+          // 打印一下最终的 imageShots 数据，确认 imageUrl 是否存在
+          console.log("图片生成完成，准备保存到数据库。ImageShots:", JSON.stringify(result.data.imageShots.map((s: any) => ({ k: s.key, url: s.imageUrl })), null, 2));
 
           // 如果没有明确的 cover/hero，尝试使用第一张成功的图片作为封面
           if (!coverImage && result.data.imageShots.length > 0) {

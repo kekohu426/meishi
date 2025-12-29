@@ -94,6 +94,7 @@ const ImageShotSchema = z.object({
   key: z.string().min(1, "图片key不能为空"),
   imagePrompt: z.string().min(1, "AI提示词不能为空"),
   ratio: RatioEnum,
+  imageUrl: z.string().optional(), // ✅ 新增：允许包含图片URL
 });
 
 const ImageShotsSchema = z.array(ImageShotSchema);
