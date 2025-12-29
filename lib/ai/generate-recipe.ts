@@ -19,96 +19,190 @@ function buildRecipePrompt(params: {
 }): string {
   const { dishName, location, cuisine, mainIngredients } = params;
 
-  return `你是一位专业的美食文化研究者和菜谱编写专家。请为"${dishName}"生成一份完整的菜谱数据，严格遵循以下JSON格式。
+  return `你是一位专业的美食文化研究者和菜谱编写专家。你的任务是:根据用户输入的菜名与约束，生成可直接用于网站渲染与AI出图的“菜谱图文原数据”。
 
 ${location ? `地点：${location}\n` : ""}${cuisine ? `菜系：${cuisine}\n` : ""}${mainIngredients && mainIngredients.length > 0 ? `主要食材：${mainIngredients.join("、")}\n` : ""}
-**重要要求：**
-1. 必须输出纯JSON格式，不要包含任何markdown标记（如\`\`\`json）
-2. JSON中不能包含注释（// 或 /* */）
-3. JSON中不能有trailing comma（最后一个元素后的逗号）
-4. 字符串中的引号必须用反斜杠转义（\\"）
-5. 严格遵循Schema v1.1.0结构
-6. 治愈系文案风格（healingTone）要温暖、细腻
-7. 步骤要详细、清晰，包含视觉检查和失败点提示
-8. 所有字段都必须填写，不能为空
-9. 如果数量只能写“适量/少许”，请使用 amount=1，unit="适量"或"少许"
+
+**总体要求：**
+1. 严格输出JSON: 顶层必须包含schemaVersion与recipe对象。
+2. 语言: 中文为主，英文名为辅。
+3. 可执行性: 步骤必须包含动作、火候、精确时间、视觉信号(visualCue)、失败检查点。
+4. 视觉美学: styleGuide必须统一为“治愈系暖调/自然光/留白/吉卜力或日杂风”。
+5. AI绘图指令: imageShots必须提供全套Prompt，且Prompt中要加入"no text, no watermark"等负面词，必须使用英文。
+6. 文化深度: story字段要写出《舌尖上的中国》风格的短文案。
+7. 图标映射: ingredients中必须包含iconKey(枚举: meat, veg, fruit, seafood, grain, bean, dairy, egg, spice, sauce, oil, tool, other)以便前端匹配图标。
+8. 语音适配: step中包含speechText，口语化简练指令。
+9. 数据格式: JSON中不能包含注释，不能有trailing comma，字符串中的引号必须转义。
 
 **JSON Schema（必须严格遵循）：**
 
 \`\`\`json
 {
   "schemaVersion": "1.1.0",
-  "titleZh": "菜名（中文）",
-  "titleEn": "Dish Name（英文，可选）",
-  "summary": {
-    "oneLine": "一句话精炼描述（15字以内）",
-    "healingTone": "治愈系文案（30字以内，温暖细腻）",
-    "difficulty": "easy | medium | hard",
-    "timeTotalMin": 总耗时（分钟数字）,
-    "timeActiveMin": 操作时间（分钟数字）,
-    "servings": 份量（人数）
-  },
-  "story": {
-    "title": "文化故事标题",
-    "content": "200-300字的文化故事，讲述这道菜的由来、文化背景、地域特色",
-    "tags": ["标签1", "标签2", "标签3"]
-  },
-  "ingredients": [
-    {
-      "section": "主料",
-      "items": [
-        {
-          "name": "食材名称",
-          "iconKey": "meat | veg | fruit | seafood | grain | bean | dairy | egg | spice | sauce | oil | other",
-          "amount": 数量（必须是数字，不能用分数如1/2，应该用小数0.5）,
-          "unit": "克 | 毫升 | 个 | 只 | 片 | 勺 | 适量",
-          "notes": "备注（可选）"
-        }
-      ]
+  "recipe": {
+    "id": "string",
+    "titleZh": "string",
+    "titleEn": "string",
+    "summary": {
+      "oneLine": "string",
+      "healingTone": "string",
+      "difficulty": "easy|medium|hard",
+      "timeTotalMin": 0,
+      "timeActiveMin": 0,
+      "servings": 1
     },
-    {
-      "section": "配料",
-      "items": [...]
-    }
-  ],
-  "steps": [
-    {
-      "id": "step01",
-      "title": "步骤标题（5-8字）",
-      "action": "详细操作描述（80-150字）",
-      "speechText": "语音朗读文本（口语化）",
-      "timerSec": 计时秒数（0表示无需计时）,
-      "visualCue": "视觉检查要点（如何判断完成）",
-      "failPoint": "常见失败点和注意事项",
-      "photoBrief": "配图说明（描述应该拍摄的画面）"
-    }
-  ],
-  "styleGuide": {
-    "theme": "治愈系主题（如：家常温馨、复古怀旧、现代简约）",
-    "lighting": "光线风格（如：自然柔和、暖色调、明亮清新）",
-    "composition": "构图建议（如：俯拍全景、45度特写、侧面展示）",
-    "aesthetic": "美学要求（如：自然真实、精致文艺、烟火气息）"
-  },
-  "imageShots": [
-    {
-      "key": "hero",
-      "imagePrompt": "Highest quality food photography, professional Michelin star plating, 8k resolution, cinematic lighting, soft focus background, delicious appetizing [Dish Name]",
-      "ratio": "16:9 | 4:3 | 3:2"
+    "story": {
+      "title": "string (文采标题)",
+      "content": "string (150字左右文化渊源)",
+      "tags": ["string"]
     },
-    {
-      "key": "step01",
-      "imagePrompt": "Close-up action shot of cooking step, high quality food photography, bright lighting, sharp details, photorealistic, 4k, [Specific action description]",
-      "ratio": "4:3"
-    }
-  ]
+    "ingredients": [
+      {
+        "section": "string",
+        "items": [
+          {
+            "name": "string",
+            "iconKey": "meat|veg|fruit|seafood|grain|bean|dairy|egg|spice|sauce|oil|other",
+            "amount": 0,
+            "unit": "string",
+            "notes": "string|null"
+          }
+        ]
+      }
+    ],
+    "steps": [
+      {
+        "id": "step01",
+        "title": "string",
+        "action": "string (详细描述)",
+        "speechText": "string (简练语音指令)",
+        "timerSec": 0,
+        "visualCue": "string (看到什么状态)",
+        "failPoint": "string",
+        "photoBrief": "string"
+      }
+    ],
+    "styleGuide": {
+      "theme": "治愈系暖调",
+      "lighting": "自然光",
+      "composition": "留白",
+      "aesthetic": "吉卜力或日杂风"
+    },
+    "imageShots": [
+      {
+        "key": "cover|step01|ingredients",
+        "imagePrompt": "string (English prompt)",
+        "ratio": "16:9|4:3|3:2"
+      }
+    ]
+  }
 }
-```
+\`\`\`
 
-**图片提示词特别要求：**
-1. 必须是用英文书写。
-2. 必须包含"food photography", "high resolution", "photorealistic", "cinematic lighting"等高质量关键词。
-3. 步骤图必须详细描述该步骤的具体动作和画面（如"slicing beef thinly", "frying garlic in oil"），不能只写"Step 1"。
-4. 确保`imageShots`中的`key`与`steps`中的`id`完全一致（如都使用"step01", "step02"）。
+**One-Shot 示例（参考此风格）：**
+\`\`\`json
+{
+  "schemaVersion": "1.1.0",
+  "recipe": {
+    "id": "tomato-egg-stirfry-001",
+    "titleZh": "番茄炒蛋",
+    "titleEn": "Tomato and Egg Stir-Fry",
+    "summary": {
+      "oneLine": "酸甜交织的家常温暖，唤醒儿时记忆。",
+      "healingTone": "温柔治愈，像母亲的拥抱般温暖。",
+      "difficulty": "easy",
+      "timeTotalMin": 15,
+      "timeActiveMin": 10,
+      "servings": 2
+    },
+    "story": {
+      "title": "酸甜的乡愁",
+      "content": "在广袤的中国大地上，番茄炒蛋如一缕阳光，洒进无数寻常百姓的餐桌。它源于上世纪的改革开放时代，西方番茄遇上东方鸡蛋，碰撞出酸甜的和谐。农家小院里，母亲手持铁锅，翻炒间香气四溢，承载着对丰收的感恩与对家人的眷恋。这道菜不需华丽调味，却能慰藉游子心魂，诉说着中国饮食文化的包容与温情，仿佛一碗热汤，融化冬日的寒意，唤醒内心深处的宁静与满足。",
+      "tags": ["家常菜", "中国传统", "温暖回忆"]
+    },
+    "ingredients": [
+      {
+        "section": "主料",
+        "items": [
+          {
+            "name": "番茄",
+            "iconKey": "veg",
+            "amount": 3,
+            "unit": "个",
+            "notes": "选择熟透的红色番茄"
+          },
+          {
+            "name": "鸡蛋",
+            "iconKey": "egg",
+            "amount": 4,
+            "unit": "个",
+            "notes": null
+          }
+        ]
+      },
+      {
+        "section": "调味",
+        "items": [
+          {
+            "name": "盐",
+            "iconKey": "spice",
+            "amount": 1,
+            "unit": "茶匙",
+            "notes": null
+          },
+          {
+            "name": "糖",
+            "iconKey": "spice",
+            "amount": 1,
+            "unit": "茶匙",
+            "notes": "用于平衡酸味"
+          }
+        ]
+      }
+    ],
+    "steps": [
+      {
+        "id": "step01",
+        "title": "准备材料",
+        "action": "将番茄洗净切成小块，鸡蛋打入碗中搅拌均匀至起泡，葱切成葱花备用。",
+        "speechText": "先洗番茄切块，打蛋搅匀，切点葱花。",
+        "timerSec": 0,
+        "visualCue": "鸡蛋液呈均匀金黄色，番茄块鲜亮多汁。",
+        "failPoint": "鸡蛋搅拌不匀会导致炒蛋不嫩滑。",
+        "photoBrief": "切好的番茄与打散的蛋液特写"
+      },
+      {
+        "id": "step02",
+        "title": "炒蛋",
+        "action": "热锅倒入1汤匙油，中火加热至油温7成热，倒入蛋液快速翻炒至凝固成块，盛出备用。",
+        "speechText": "热锅加油，倒蛋液快炒成块，盛出来。",
+        "timerSec": 30,
+        "visualCue": "蛋块金黄松软，不粘锅底。",
+        "failPoint": "火太大蛋会焦糊，火太小蛋不蓬松。",
+        "photoBrief": "锅中金黄蛋块翻炒瞬间"
+      }
+    ],
+    "styleGuide": {
+      "theme": "治愈系暖调",
+      "lighting": "自然光",
+      "composition": "留白",
+      "aesthetic": "吉卜力或日杂风"
+    },
+    "imageShots": [
+      {
+        "key": "cover",
+        "imagePrompt": "A warm, healing plate of tomato and egg stir-fry, golden eggs mixed with juicy red tomatoes, soft steam rising, natural light, ample white space, Ghibli-style cozy kitchen background, no text, no watermark, high detail, vibrant colors",
+        "ratio": "16:9"
+      },
+      {
+        "key": "step01",
+        "imagePrompt": "Close-up of scrambling eggs in wok, golden fluffy texture, warm tones, natural light filtering in, empty space around, Ghibli-inspired soft focus, no text, no watermark, appetizing details",
+        "ratio": "4:3"
+      }
+    ]
+  }
+}
+\`\`\`
 
 **现在请为"${dishName}"生成完整的菜谱JSON数据：**
 （请直接输出JSON，不要包含任何markdown代码块标记）`;
