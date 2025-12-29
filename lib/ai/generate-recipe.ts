@@ -348,6 +348,15 @@ export async function generateRecipe(params: {
     let recipeData: any;
     try {
       recipeData = JSON.parse(cleanedContent);
+      
+      // 兼容处理：如果AI返回的数据包裹在recipe字段中，提取出来
+      if (recipeData.recipe && typeof recipeData.recipe === 'object') {
+        const { recipe, ...rest } = recipeData;
+        recipeData = {
+          ...rest,
+          ...recipe
+        };
+      }
     } catch (parseError) {
       console.error("JSON解析失败:", parseError);
       console.error("原始内容（前500字符）:", response.content.substring(0, 500));
